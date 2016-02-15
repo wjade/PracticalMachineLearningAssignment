@@ -1,0 +1,65 @@
+---
+title: "PredictionAssignmentWriteup"
+output: html_document
+---
+
+Load all the packages
+
+```{r}
+library(lattice)
+library(ggplot2)
+library(caret)
+library(e1071)
+library(randomForest)
+```
+
+
+Load training data and test data. In order to make the data clean up easier, I combined the trainging and testing data.
+
+```{r}
+
+pmlTrain <- read.csv("c:/assignments/pml-training.csv")
+pmlTesting <- read.csv("c:/assignments/pml-testing.csv")
+accuracy = function(values,p1){sum(p1 == values)/length(values)}
+
+```
+
+Clean up the data. First by looking at the data, I manually removed some of the features.
+
+and then remove the low vaiance features.
+```{r}
+drops <- c("X", "user_name", "cvtd_timestamp", "raw_timestamp_part_1", "raw_timestamp_part_2","new_window", "num_window")
+pmlCleanedData <- pmlTrain[,!(names(pmlTrain) %in% drops)]
+pmlCleanedData <- pmlCleanedData[, which(colSums(apply(pmlCleanedData, 2, is.na)) < 3)]
+
+badCols <- nearZeroVar(pmlCleanedData)
+
+pmlCleanedData <- pmlCleanedData[, -badCols]
+```
+
+Take a look at the data
+```{r}
+summary(pmlCleanedData)
+head(pmlCleanedData)
+```
+
+partition the pml data with training and test set.
+```{r}
+inTrain <- createDataPartition(pmlCleanedData$classe, p=3/4)[[1]]
+pmlTrainingData <- pmlCleanedData[inTrain,]
+pmlValidationData <- pmlCleanedData[-inTrain,]
+```
+
+Try to clean up the data first and training with SVM
+```{r}
+
+pmlRF <- randomForest(factor(classe)~., data=pmlTrainingData, ntree=2048)
+pmlValidationPredict <- predict(pmlRF, pmlValidationData)
+accuracy(pmlValidationPredict, factor(pmlValidationData$classe))
+
+```
+Last step to predict the test data.
+```{r}
+predict(pmlRF, pmlTesting)
+
+```
